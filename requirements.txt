@@ -1,0 +1,7 @@
+openpyxl
+xlwings
+pandas
+pyinstaller
+pydantic
+dash
+dash-bootstrap-components
