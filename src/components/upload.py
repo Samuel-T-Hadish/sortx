@@ -1,38 +1,20 @@
 """ This module contains the upload component."""
 
-from typing import Dict
-
-from dash import Dash, dcc, html
-from dash.dependencies import Input, Output, State
+import dash_bootstrap_components as dbc
+from dash import dcc, html
 
 from . import ids
 
 
-def render(app: Dash) -> html.Div:
-
-    @app.callback(
-        Output(ids.UPLOAD_FILE_STORE, "data"),
-        Input(ids.UPLOAD_FILE, "contents"),
-        State(ids.UPLOAD_FILE, "filename"),
-    )
-    def store_uploaded_file(contents: str, filename: str) -> Dict[str, str]:
-
-        if contents is not None:
-            children = {
-                "content": contents,
-                "filename": filename,
-            }
-            return children
-        return {}
-
-    return html.Div(
-        [
-            html.H4("Upload the excel file which contains the document number"),
+def render():
+    upload_component = html.Div(
+        id=ids.UPLOAD_CONTAINER,
+        children=[
+            html.H5("Upload a file"),
             dcc.Upload(
                 id=ids.UPLOAD_FILE,
                 children=[
                     html.Div(children=["Drag and Drop or ", html.A("Select Files")]),
-                    html.Div(id=ids.UPLOAD_FEEDBACK),
                 ],
                 style={
                     "width": "100%",
@@ -46,11 +28,38 @@ def render(app: Dash) -> html.Div:
                 },
                 multiple=False,
             ),
-            dcc.Store(id=ids.UPLOAD_FILE_STORE, data={}),
-            dcc.Textarea(
+        ],
+    )
+
+    folder_path_text_component = dbc.Container(
+        id=ids.FOLDER_PATH_CONTAINER,
+        children=[
+            html.H5("Enter the top level folder path"),
+            dcc.Input(
                 id=ids.FOLDER_PATH_TEXT,
                 placeholder="Please enter the top level folder path",
                 className="form-control mt-3 mb-3",
+            ),
+            html.Div(id=ids.FOLDER_PATH_FEEDBACK,children=""),
+        ],
+    )
+
+    return html.Div(
+        [
+            upload_component,
+            html.Div(
+                children=html.H6("No file uploaded yet."),
+                id=ids.UPLOAD_FEEDBACK,
+            ),
+            folder_path_text_component,
+            dcc.Store(id=ids.UPLOAD_FILE_STORE, data={}),
+            dcc.Loading(
+                dcc.Dropdown(
+                    id=ids.DOC_NO_COLUMN_NAME,
+                    placeholder="Please select the document number column name",
+                    className="form-control mt-3 mb-3",
+                    style={"display": "none"},
+                )
             ),
         ]
     )
