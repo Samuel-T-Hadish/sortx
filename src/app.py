@@ -22,4 +22,5 @@ input_validation.register_callbacks(app)
 excel_processing.register_callbacks(app)
 
 if __name__ == "__main__":
+    # app.run(debug=True, host="10.29.3.31")
     app.run(debug=True)

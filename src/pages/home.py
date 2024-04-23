@@ -9,7 +9,9 @@ from components import button, download, upload
 dash.register_page(__name__, path="/")
 
 
-def layout() -> dbc.Container:
+def layout() -> (
+    dbc.Container
+):  # TODO: Input atttribute for file extension, other options
 
     return dbc.Container(
         [

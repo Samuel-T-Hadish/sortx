@@ -76,30 +76,37 @@ class FileCrawler:
         self,
         df: pd.DataFrame,
         folder_directory: str,
-        doc_no_column_name: Optional[str],
+        doc_no_column_name: str,
     ):
         self.df = df
         self.folder_directory = folder_directory
         self.doc_no_column_name = doc_no_column_name
 
-    def update_folder_link(self):
+    def update_folder_link(
+        self,
+    ):  # TODO: Input atttribute for file extension, other options
         if self.df is None:
             logger.error("DataFrame is empty or not initialized.")
             raise ValueError("DataFrame is empty or not initialized.")
 
+        df_column_values = set(self.df[self.doc_no_column_name].astype(str).values)
         for file_path in Path(self.folder_directory).rglob("*"):
             if (
-                file_path.is_dir()
-                and file_path.name in self.df[self.doc_no_column_name].values
-            ):
-                self.df.loc[
-                    self.df[self.doc_no_column_name] == file_path.name,
-                    ["status", "filepath", "processed_date"],
-                ] = [
-                    "Yes",
-                    str(file_path),
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                file_path.is_file() and file_path.suffix == ".pdf"
+            ) or file_path.is_dir():
+                matched_docs = [
+                    doc_no for doc_no in df_column_values if doc_no in file_path.name
                 ]
+                if matched_docs:
+                    for doc_no in matched_docs:
+                        self.df.loc[
+                            self.df[self.doc_no_column_name] == doc_no,
+                            ["status", "filepath", "processed_date"],
+                        ] = [
+                            "Yes",
+                            str(file_path),
+                            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        ]
         logger.info("Folder link updated successfully.")
 
     def get_output_dict(self):
