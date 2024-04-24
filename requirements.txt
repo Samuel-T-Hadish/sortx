@@ -5,3 +5,4 @@ pyinstaller
 pydantic
 dash
 dash-bootstrap-components
+git+https://github.com/sandeeprah/agility.git@skeleton-components

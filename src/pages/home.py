@@ -2,19 +2,18 @@
 This module contains the layout for the Dash application."""
 
 import dash
-import dash_bootstrap_components as dbc
+from dash import html
 
-from components import button, download, upload
+from components.home import processing, upload
 
 dash.register_page(__name__, path="/")
 
+layout = html.Div(
+    [
+        upload.export_container(),
+        processing.export_container(),
+    ]
+)
 
-def layout() -> dbc.Container:
-
-    return dbc.Container(
-        [
-            upload.render(),
-            button.render(),
-            download.render(),
-        ]
-    )
+upload.register_callbacks()
+processing.register_callbacks()
