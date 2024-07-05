@@ -1,11 +1,22 @@
-# sortX
+# Sample One
 
-sortX is a DASH Python application that allows users to upload an Excel file containing document numbers and then crawls through a specified directory to find matching folders. The application then updates the DataFrame with the status, file path, and processed date for each document number.
+A basic Dash application
 
-## Project Structure
-The project has the following structure:
+## Author
 
-- **app.py**: The main entry point for the application.
-- **src/**: Contains the source code for the application.
-- **components/**: Contains the components of the application, such as the upload and download components.
-- **data/**: Contains the FileCrawler class, which is responsible for crawling the file system.
+- **Your Name** - *Initial work* - [Email](mailto:your_email@example.com)
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Requirements
+
+This project requires Python 3.12 and Dash 2.17.1.
+
+
+## Configure Tailwind 
+On windows download the standalone tailwindcss cli executable. this helps to compile css without using node.js. The downloaded file for windows will be "tailwindcss-windows-x64.exe". Rename this to "tailwindcss.exe" and ensure it is added to the .gitignore.
+
+Run the command 
+tailwind -i ./assets/input.css -o ./assets/output.css --minify
