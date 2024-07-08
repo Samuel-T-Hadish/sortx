@@ -25,24 +25,24 @@ class FileCrawler:
         excel_file_path: str,
         folder_directory: str,
         doc_no_column_name: Optional[str],
+        sheet_name: str,
         header: int = 1,
-        sheet_name: str | int = 1,
     ):
         self.excel_file_path = excel_file_path
         self.folder_directory = folder_directory
         self.doc_no_column_name = doc_no_column_name
-        self.header = header - 1
-        self.sheet_name = sheet_name - 1
+        self.header = header
+        self.sheet_name = sheet_name
 
     def read_excel(self):
         try:
             self.df = pd.read_excel(
-                self.excel_file_path, sheet_name=self.sheet_name, header=self.header
+                self.excel_file_path, sheet_name=self.sheet_name, header=self.header - 1
             )
             logger.info("Excel file read successfully.")
         except Exception as e:
             logger.error(f"Error reading excel file: {e}")
-            raise
+
 
     def update_folder_link(self):
         if self.df is None:
@@ -65,15 +65,36 @@ class FileCrawler:
         logger.info("Folder link updated successfully.")
 
     def save_excel(self):
+        app = xw.App(visible=False)
         try:
-            with xw.App(visible=False) as app:
-                wb = app.books.open(self.excel_file_path)
+            wb = app.books.open(self.excel_file_path)
+            try:
                 sheet = wb.sheets[self.sheet_name]
-                starting_cell = sheet.range(f"A{self.header}")
+                starting_cell = sheet.range(
+                    f"A{self.header}"
+                )
                 sheet.range(starting_cell).expand("table").clear_contents()
                 sheet.range(starting_cell).options(index=False).value = self.df
                 wb.save()
+            except PermissionError as e:
+                logger.error(f"Permission error while saving Excel file: {e}")
+                raise ValueError("Error saving Excel file due to permission issues.")
+            except Exception as e:
+                logger.error(f"Error saving excel file: {e}")
+                raise ValueError("Unexpected error saving Excel file.")
+            finally:
                 wb.close()
         except Exception as e:
-            logger.error(f"Error saving excel file: {e}")
-            raise ValueError("Error saving excel file.")
+            logger.error(f"Error opening Excel file: {e}")
+            raise ValueError("Error opening Excel file.")
+        finally:
+            app.quit()
+
+    def main(self):
+        """
+        Main to read the excel file, update the folder link and save the excel file.
+        """
+
+        self.read_excel()
+        self.update_folder_link()
+        self.save_excel()

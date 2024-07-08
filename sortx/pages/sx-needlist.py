@@ -18,6 +18,7 @@ from dash.exceptions import PreventUpdate
 
 from sortx.config.main import STORE_ID
 from sortx.project import needlist
+from sortx.schemas.needlist import NeedlistInput
 
 dash.register_page(__name__)
 app: Dash = dash.get_app()
@@ -30,7 +31,9 @@ class PageIDs:
     filename = os.path.basename(__file__)
     prefix: Final[str] = filename.replace(".py", "")
     STATUS: Final[str] = f"{prefix}_status"
-    INPUT: Final[str] = f"{prefix}_input"
+    INPUT_LAYOUT: Final[str] = f"{prefix}_input_layout"
+    COLUMN_DROPDOWN_CONTAINER: Final[str] = f"{prefix}_column_dropdown_container"
+    GENERATE_COLUMN_BTN: Final[str] = f"{prefix}_generate_column_btn"
     SAVE_BTN: Final[str] = f"{prefix}_save_btn"
     SAVE_CONTAINER: Final[str] = f"{prefix}_save_container"
     FEEDBACK_SAVE: Final[str] = f"{prefix}_feedback_save"
@@ -60,12 +63,12 @@ layout = html.Div(
         ),
         html.Hr(),
         html.Div(id=ids.STATUS),
-        html.Div(id=ids.INPUT),
+        html.Div(id=ids.INPUT_LAYOUT),
         html.Div(id=ids.SAVE_CONTAINER),
         html.Div(id=ids.FEEDBACK_SAVE),
         html.Div(id=ids.RUN_CONTAINER),
-        html.Div(id=ids.FEEDBACK_RUN),
-        html.Div(id=ids.OUTPUT),
+        dcc.Loading(html.Div(id=ids.FEEDBACK_RUN)),
+        dcc.Loading(html.Div(id=ids.OUTPUT)),
     ],
     className="w-full",
 )
@@ -87,7 +90,7 @@ def load_status(data):
 
 # callback function to display the input fields and save btn if project is loaded
 @app.callback(
-    Output(ids.INPUT, "children"),
+    Output(ids.INPUT_LAYOUT, "children"),
     Output(ids.SAVE_CONTAINER, "children"),
     [Input(STORE_ID, "data")],
 )
@@ -96,7 +99,7 @@ def display_input(data):
     if data is None:
         raise PreventUpdate
 
-    needlist_input = data.get("page1_input", {})
+    needlist_input = data.get("needlist_input", {})
     needlist_input, errors = needlist.validate_input(needlist_input)
 
     input_fields = html.Div(
@@ -129,14 +132,19 @@ def display_input(data):
                 value=needlist_input.get("header_row", ""),
                 error_message=errors.get("header_row", ""),
             ).layout,
+            ButtonCustom(
+                id=ids.GENERATE_COLUMN_BTN,
+                label="Generate Column List",
+                color="bg-blue-500",
+            ).layout,
             dcc.Loading(
                 DropdownCustom(
                     id=ids.COLUMN_NAME_DROPDOWN,
                     label="Column Name",
                     help_text="Please select the column name",
-                    value=needlist_input.get("column_name", ""),
-                    error_message=errors.get("column_name", ""),
-                    options=[""],
+                    value=needlist_input.get("doc_no_column_name", ""),
+                    error_message=errors.get("doc_no_column_name", ""),
+                    options=needlist_input.get("column_names", [""]),
                 ).layout
             ),
         ]
@@ -150,19 +158,36 @@ def display_input(data):
 
     return input_fields, save_btn
 
+
+# Generate column list on click of generate column list button
 @app.callback(
-    Output(ids.INPUT, "children"),
-    Input(STORE_ID, "data"),
-    State(ids.INPUT, "children"),
+    Output(ids.COLUMN_NAME_DROPDOWN, "options"),
+    Output(STORE_ID, "data", allow_duplicate=True),
+    Output(f"{ids.GENERATE_COLUMN_BTN}-feedback", "children", allow_duplicate=True),
+    [Input(ids.GENERATE_COLUMN_BTN, "n_clicks")],
+    [State(STORE_ID, "data")],
+    prevent_initial_call=True,
 )
+def generate_column_list(n_clicks, data):
+    if n_clicks is None:
+        return dash.no_update, dash.no_update, dash.no_update
 
+    status, updated_data, msg = needlist.column_input_ready(data)
+    if not status:
+        return dash.no_update, data, MessageCustom(messages=msg, success=False).layout
 
+    column_names = updated_data["needlist_input"]["column_names"]
+    return (
+        column_names,
+        updated_data,
+        MessageCustom(messages=msg, success=True).layout,
+    )
 
 
 # callback function to save the input data to store on click of save button. Output to have store and save feedback
 @app.callback(
-    Output(STORE_ID, "data"),
-    Output(ids.FEEDBACK_SAVE, "children"),
+    Output(STORE_ID, "data", allow_duplicate=True),
+    Output(ids.FEEDBACK_SAVE, "children", allow_duplicate=True),
     [Input(ids.SAVE_BTN, "n_clicks")],
     [
         State(ids.NEEDLIST_PATH, "value"),
@@ -170,12 +195,20 @@ def display_input(data):
         State(ids.SHEET_NAME, "value"),
         State(ids.HEADER, "value"),
         State(ids.COLUMN_NAME_DROPDOWN, "value"),
+        State(ids.COLUMN_NAME_DROPDOWN, "options"),
         State(STORE_ID, "data"),
     ],
     prevent_initial_call=True,
 )
 def save_data(
-    n_clicks, needlist_path, folder_path, sheet_name, header_row, column_name, data
+    n_clicks,
+    needlist_path,
+    folder_path,
+    sheet_name,
+    header_row,
+    doc_no_column_name,
+    column_names,
+    data,
 ):
     if n_clicks is None:
         raise PreventUpdate
@@ -184,7 +217,8 @@ def save_data(
         "folder_path": folder_path,
         "sheet_name": sheet_name,
         "header_row": header_row,
-        "column_name": column_name,
+        "doc_no_column_name": doc_no_column_name,
+        "column_names": column_names,
     }
     data["needlist_input"] = needlist_input
     return (
@@ -204,12 +238,12 @@ def display_run_btn(data):
 
     all_inputs_ready, messages = needlist.all_inputs_ready(data)
     if all_inputs_ready:
-        run_btn = ButtonCustom(
+        return ButtonCustom(
             id=ids.RUN_BTN,
             label="Update Needlist",
             color="bg-purple-500",
         ).layout
-        return run_btn
+
     return MessageCustom(messages=messages, success=False).layout
 
 
@@ -230,7 +264,7 @@ def run_calculation(n_clicks, data):
     if is_ready:
         try:
             data = needlist.run_calculation(data)
-            message.append("Page Calculations Successfully Completed")
+            message.append("Needlist Updated Successfully with Folder Links")
             feedback_html = MessageCustom(messages=message, success=True).layout
             return data, feedback_html
         except Exception as e:
@@ -240,7 +274,6 @@ def run_calculation(n_clicks, data):
             feedback_html = MessageCustom(messages=message, success=False).layout
             return data, feedback_html
     else:
-        print("Page Calculation Inputs are not ready")
         message.append(msg)
         feedback_html = MessageCustom(messages=message, success=False).layout
         return data, feedback_html

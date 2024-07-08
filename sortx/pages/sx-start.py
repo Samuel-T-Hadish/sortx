@@ -21,9 +21,7 @@ app: Dash = dash.get_app()
 
 class PageIDs:
     def __init__(self) -> None:
-        # Get the base name of the file where this instance is created
         filename = os.path.basename(__file__)
-        # Remove the file extension to use only the file name as the prefix
         prefix: Final[str] = filename.replace(".py", "")
         self.prefix: Final[str] = prefix
         self.status: Final[str] = f"{prefix}_status"
