@@ -1,0 +1,32 @@
+[MAIN]
+fail-under=10
+persistent=yes
+py-version=3.11
+recursive=no
+suggestion-mode=yes
+unsafe-load-any-extension=no
+
+[DESIGN]
+max-args=10
+max-attributes=9
+max-bool-expr=5
+max-branches=12
+max-locals=15
+max-parents=7
+max-public-methods=20
+max-returns=6
+max-statements=50
+min-public-methods=2
+
+
+[FORMAT]
+indent-after-paren=4
+indent-string='    '
+max-line-length=100
+max-module-lines=800
+
+
+[MESSAGES CONTROL]
+disable=W1203,R0903, C3001, use-dict-literal
+enable=c-extension-no-member, consider-using-f-string
+

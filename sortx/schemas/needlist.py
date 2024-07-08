@@ -18,6 +18,7 @@ class NeedlistInput(BaseModel):
         header_row: int
         column_names: List[str]
         doc_no_column_name: str
+        search_level: str
 
     """
 
@@ -27,6 +28,7 @@ class NeedlistInput(BaseModel):
     header_row: int
     column_names: List[str] = Field(default_factory=list)
     doc_no_column_name: Optional[str] = None
+    search_level: str = "file"
 
     @field_validator("folder_path")
     @classmethod
@@ -70,3 +72,10 @@ class NeedlistInput(BaseModel):
                 wb.close()
 
         return self
+
+    @field_validator("search_level")
+    @classmethod
+    def check_search_level(cls, v: str):
+        if v not in ["folder", "file"]:
+            raise ValueError("Search level should be either 'folder' or 'file'.")
+        return v

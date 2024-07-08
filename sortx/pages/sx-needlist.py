@@ -6,12 +6,10 @@ from typing import Final
 import dash
 from agility.components import (
     ButtonCustom,
-    CheckboxCustom,
-    ContainerCustom,
-    DisplayField,
     DropdownCustom,
     InputCustom,
     MessageCustom,
+    RadioItems,
 )
 from dash import Dash, Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
@@ -24,7 +22,7 @@ dash.register_page(__name__)
 app: Dash = dash.get_app()
 
 
-PAGE_TITLE = "Page One"
+PAGE_TITLE = "Needlist Updation"
 
 
 class PageIDs:
@@ -34,6 +32,7 @@ class PageIDs:
     INPUT_LAYOUT: Final[str] = f"{prefix}_input_layout"
     COLUMN_DROPDOWN_CONTAINER: Final[str] = f"{prefix}_column_dropdown_container"
     GENERATE_COLUMN_BTN: Final[str] = f"{prefix}_generate_column_btn"
+    SEARCH_LEVEL: Final[str] = f"{prefix}_search_level"
     SAVE_BTN: Final[str] = f"{prefix}_save_btn"
     SAVE_CONTAINER: Final[str] = f"{prefix}_save_container"
     FEEDBACK_SAVE: Final[str] = f"{prefix}_feedback_save"
@@ -70,7 +69,7 @@ layout = html.Div(
         dcc.Loading(html.Div(id=ids.FEEDBACK_RUN)),
         dcc.Loading(html.Div(id=ids.OUTPUT)),
     ],
-    className="w-full",
+    className="w-full px-6",
 )
 
 
@@ -147,6 +146,17 @@ def display_input(data):
                     options=needlist_input.get("column_names", [""]),
                 ).layout
             ),
+            RadioItems(
+                id=ids.SEARCH_LEVEL,
+                label="Search Level",
+                options=[
+                    {"label": "File", "value": "file"},
+                    {"label": "Folder", "value": "folder"},
+                ],
+                value=needlist_input.get("search_level", "file"),
+                help_text="Please select whether to search for files or folders names",
+                inline=True,
+            ).layout,
         ]
     )
 
@@ -184,7 +194,7 @@ def generate_column_list(n_clicks, data):
     )
 
 
-# callback function to save the input data to store on click of save button. Output to have store and save feedback
+# Save the input data
 @app.callback(
     Output(STORE_ID, "data", allow_duplicate=True),
     Output(ids.FEEDBACK_SAVE, "children", allow_duplicate=True),
@@ -196,6 +206,7 @@ def generate_column_list(n_clicks, data):
         State(ids.HEADER, "value"),
         State(ids.COLUMN_NAME_DROPDOWN, "value"),
         State(ids.COLUMN_NAME_DROPDOWN, "options"),
+        State(ids.SEARCH_LEVEL, "value"),
         State(STORE_ID, "data"),
     ],
     prevent_initial_call=True,
@@ -208,6 +219,7 @@ def save_data(
     header_row,
     doc_no_column_name,
     column_names,
+    search_level,
     data,
 ):
     if n_clicks is None:
@@ -219,6 +231,7 @@ def save_data(
         "header_row": header_row,
         "doc_no_column_name": doc_no_column_name,
         "column_names": column_names,
+        "search_level": search_level,
     }
     data["needlist_input"] = needlist_input
     return (

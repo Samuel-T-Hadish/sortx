@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Tuple
 
-from agility.utils.pydantic import process_pydantic_errors, validate_data
+from agility.utils.pydantic import validate_data
 from pydantic import ValidationError
 
 from sortx.core.file_crawler import FileCrawler
@@ -64,6 +64,6 @@ def run_calculation(data) -> dict:
         doc_no_column_name=needlist_input.doc_no_column_name,
         sheet_name=needlist_input.sheet_name,
     )
-    file_crawler.main()
+    file_crawler.main(needlist_input.search_level)
 
     return data
