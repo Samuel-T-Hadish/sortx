@@ -63,6 +63,7 @@ def run_calculation(data) -> dict:
         folder_directory=needlist_input.folder_path,
         doc_no_column_name=needlist_input.doc_no_column_name,
         sheet_name=needlist_input.sheet_name,
+        header=int(needlist_input.header_row),
     )
     file_crawler.main(needlist_input.search_level)
 

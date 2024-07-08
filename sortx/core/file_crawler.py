@@ -29,7 +29,7 @@ class FileCrawler:
         folder_directory: str,
         doc_no_column_name: Optional[str],
         sheet_name: str,
-        header: int = 1,
+        header: int,
     ):
         self.excel_file_path = excel_file_path
         self.folder_directory = folder_directory
