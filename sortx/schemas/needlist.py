@@ -1,4 +1,6 @@
-"""Schema for the needlist data of the project."""
+"""
+schemas/needlist.py
+Schema for the needlist data of the project."""
 
 from pathlib import Path
 from typing import List, Optional, Self
@@ -7,28 +9,10 @@ import openpyxl
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-class NeedlistInput(BaseModel):
-    """
-    Pydantic model for the needlist data of the project.
-
-    Attributes:
-        folder_path: str
-        excel_path: str
-        sheet_name: str | int
-        header_row: int
-        column_names: List[str]
-        doc_no_column_name: str
-        search_level: str
-
-    """
+class PathInput(BaseModel):
 
     folder_path: str
     excel_path: str
-    sheet_name: str | int
-    header_row: int
-    column_names: List[str] = Field(default_factory=list)
-    doc_no_column_name: Optional[str] = None
-    search_level: str = "file"
 
     @field_validator("folder_path")
     @classmethod
@@ -37,33 +21,65 @@ class NeedlistInput(BaseModel):
             raise ValueError("Folder does not exist.")
         return v
 
-    @model_validator(mode="after")
-    def check_excel_path(self) -> Self:
-        if not Path(self.excel_path).exists() or not self.excel_path.endswith(
-            (".xls", ".xlsx")
-        ):
-            raise ValueError("Excel file does not exist.")
+    @field_validator("excel_path")
+    @classmethod
+    def check_excel_path(cls, v: str):
+        if not Path(v).exists() or not v.endswith((".xls", ".xlsx")):
+            raise ValueError(
+                f"Excel file does not exist or is not a valid Excel file: {v}"
+            )
+        return v
 
+
+class ExcelInput(BaseModel):
+    sheet_name: str
+    header_row: int = Field(default=1, ge=1)
+
+
+class ColumnInput(BaseModel):
+    column_names: List[str] = Field(default_factory=list)
+    doc_no_column_name: str = ""
+
+
+class NeedlistInput(BaseModel):
+
+    path_input: PathInput
+    excel_input: ExcelInput
+    column_input: ColumnInput
+    search_level: str = "file"
+
+    @field_validator("search_level")
+    @classmethod
+    def check_search_level(cls, v: str):
+        if v not in ["folder", "file"]:
+            raise ValueError("Search level should be either 'folder' or 'file'.")
+
+    @model_validator(mode="after")
+    def check_sheet_names(self) -> Self:
         wb = None
         try:
-            wb = openpyxl.load_workbook(self.excel_path, read_only=True)
-            if isinstance(self.sheet_name, int):
-                if self.sheet_name >= len(wb.sheetnames):
+            wb = openpyxl.load_workbook(self.path_input.excel_path, read_only=True)
+            if isinstance(self.excel_input.sheet_name, int):
+                if self.excel_input.sheet_name >= len(wb.sheetnames):
                     raise ValueError("Sheet index out of range.")
-                ws = wb[wb.sheetnames[self.sheet_name]]
-            elif isinstance(self.sheet_name, str):
-                if self.sheet_name not in wb.sheetnames:
+                ws = wb[wb.sheetnames[self.excel_input.sheet_name]]
+            elif isinstance(self.excel_input.sheet_name, str):
+                if self.excel_input.sheet_name not in wb.sheetnames:
                     raise ValueError("Sheet name does not exist in the excel file.")
-                ws = wb[self.sheet_name]
+                ws = wb[self.excel_input.sheet_name]
             else:
                 raise ValueError("Sheet name must be a string or an integer.")
 
             row = list(
                 ws.iter_rows(
-                    min_row=self.header_row, max_row=self.header_row, values_only=True
+                    min_row=self.excel_input.header_row,
+                    max_row=self.excel_input.header_row,
+                    values_only=True,
                 )
             )[0]
-            self.column_names = [cell for cell in row if cell is not None]
+            self.column_input.column_names = [
+                str(cell) for cell in row if cell is not None
+            ]
 
         except Exception as e:
             raise ValueError(f"Error reading Excel file: {e}")
@@ -72,10 +88,3 @@ class NeedlistInput(BaseModel):
                 wb.close()
 
         return self
-
-    @field_validator("search_level")
-    @classmethod
-    def check_search_level(cls, v: str):
-        if v not in ["folder", "file"]:
-            raise ValueError("Search level should be either 'folder' or 'file'.")
-        return v

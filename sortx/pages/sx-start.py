@@ -1,4 +1,5 @@
-"""Start page for the agility application."""
+"""pages/sx-start.py
+Start page for the agility application."""
 
 import json
 import os
@@ -13,9 +14,7 @@ from dash.exceptions import PreventUpdate
 from sortx.config.main import PROJECT_NAME, PROJECT_SLUG, STORE_ID
 from sortx.project import Project, start
 
-# from my_dash_app.components.file_handler import FileHandler
-
-dash.register_page(__name__)
+dash.register_page(__name__, title="SortX", description="Welcome to SortX!")
 app: Dash = dash.get_app()
 
 

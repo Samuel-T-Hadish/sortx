@@ -6,12 +6,9 @@
     "project_description": ""
   },
   "needlist_input": {
-    "folder_path": "",
-    "excel_path": "",
-    "sheet_name": "",
-    "header_row": 1,
-    "column_names": [""],
-    "doc_no_column_name": "",
+    "path_input": {},
+    "excel_input": {},
+    "column_input": {},
     "search_level": "file"
   }
 }

@@ -1,4 +1,5 @@
-import math
+"""pages/sx-needlist.py"""
+
 import os
 import traceback
 from typing import Final
@@ -11,14 +12,20 @@ from agility.components import (
     MessageCustom,
     RadioItems,
 )
+from agility.utils.pydantic import process_pydantic_errors
 from dash import Dash, Input, Output, State, dcc, html
 from dash.exceptions import PreventUpdate
+from pydantic import ValidationError
 
 from sortx.config.main import STORE_ID
 from sortx.project import needlist
-from sortx.schemas.needlist import NeedlistInput
+from sortx.schemas.needlist import NeedlistInput, PathInput
 
-dash.register_page(__name__)
+dash.register_page(
+    __name__,
+    title="SortX - Needlist Updation",
+    description="Update needlist with folder links",
+)
 app: Dash = dash.get_app()
 
 
@@ -30,17 +37,18 @@ class PageIDs:
     prefix: Final[str] = filename.replace(".py", "")
     STATUS: Final[str] = f"{prefix}_status"
     INPUT_LAYOUT: Final[str] = f"{prefix}_input_layout"
+    PATH_INPUT_CONTAINER: Final[str] = f"{prefix}_path_input_container"
+    EXCEL_INFO_CONTAINER: Final[str] = f"{prefix}_excel_info_container"
     COLUMN_DROPDOWN_CONTAINER: Final[str] = f"{prefix}_column_dropdown_container"
+    SAVE_CONTAINER: Final[str] = f"{prefix}_save_container"
     GENERATE_COLUMN_BTN: Final[str] = f"{prefix}_generate_column_btn"
     SEARCH_LEVEL: Final[str] = f"{prefix}_search_level"
     SAVE_BTN: Final[str] = f"{prefix}_save_btn"
-    SAVE_CONTAINER: Final[str] = f"{prefix}_save_container"
     FEEDBACK_SAVE: Final[str] = f"{prefix}_feedback_save"
     RUN_BTN: Final[str] = f"{prefix}_run_btn"
     RUN_CONTAINER: Final[str] = f"{prefix}_run_container"
     FEEDBACK_RUN: Final[str] = f"{prefix}_feedback_run"
     OUTPUT: Final[str] = f"{prefix}_output"
-
     NEEDLIST_PATH: Final[str] = "needlist-path"
     FOLDER_PATH: Final[str] = "folder-path"
     COLUMN_NAME_DROPDOWN: Final[str] = "column-name-dropdown"
@@ -69,7 +77,7 @@ layout = html.Div(
         dcc.Loading(html.Div(id=ids.FEEDBACK_RUN)),
         dcc.Loading(html.Div(id=ids.OUTPUT)),
     ],
-    className="w-full px-6",
+    className="w-full px-10",
 )
 
 
@@ -100,50 +108,64 @@ def display_input(data):
 
     needlist_input = data.get("needlist_input", {})
     needlist_input, errors = needlist.validate_input(needlist_input)
+    print(errors)
 
-    input_fields = html.Div(
+    path_container = html.Div(
         [
             InputCustom(
                 id=ids.NEEDLIST_PATH,
                 label="Needlist Path",
-                help_text="Please enter the needlist excel path",
-                value=needlist_input.get("excel_path", ""),
-                error_message=errors.get("excel_path", ""),
+                help_text="Please enter the complete needlist excel path along with the extension",
+                value=needlist_input.get("path_input", {}).get("excel_path", ""),
+                error_message=errors.get("path_input", {}).get("excel_path", ""),
             ).layout,
             InputCustom(
                 id=ids.FOLDER_PATH,
                 label="Folder Path",
-                help_text="Please enter the top level folder path",
-                value=needlist_input.get("folder_path", ""),
-                error_message=errors.get("folder_path", ""),
+                help_text="Please enter the top level folder path where the received files are stored",
+                value=needlist_input.get("path_input", {}).get("folder_path", ""),
+                error_message=errors.get("path_input", {}).get("folder_path", ""),
             ).layout,
+        ],
+        id=ids.PATH_INPUT_CONTAINER,
+    )
+
+    excel_info = html.Div(
+        [
             InputCustom(
                 id=ids.SHEET_NAME,
                 label="Sheet Name",
                 help_text="Please enter the sheet name",
-                value=needlist_input.get("sheet_name", ""),
-                error_message=errors.get("sheet_name", ""),
+                value=needlist_input.get("excel_input", {}).get("sheet_name", ""),
+                error_message=errors.get("excel_input", {}).get("sheet_name", ""),
             ).layout,
             InputCustom(
                 id=ids.HEADER,
                 label="Header Row Number",
                 help_text="Please enter the header row number",
-                value=needlist_input.get("header_row", ""),
-                error_message=errors.get("header_row", ""),
+                value=needlist_input.get("excel_input", {}).get("header_row", ""),
+                error_message=errors.get("excel_input", {}).get("header_row", ""),
             ).layout,
-            ButtonCustom(
-                id=ids.GENERATE_COLUMN_BTN,
-                label="Generate Column List",
-                color="bg-blue-500",
-            ).layout,
+        ],
+        id=ids.EXCEL_INFO_CONTAINER,
+    )
+
+    column_dropdown = html.Div(
+        [
             dcc.Loading(
                 DropdownCustom(
                     id=ids.COLUMN_NAME_DROPDOWN,
                     label="Column Name",
                     help_text="Please select the column name",
-                    value=needlist_input.get("doc_no_column_name", ""),
-                    error_message=errors.get("doc_no_column_name", ""),
-                    options=needlist_input.get("column_names", [""]),
+                    value=needlist_input.get("column_input", {}).get(
+                        "doc_no_column_name", ""
+                    ),
+                    error_message=errors.get("column_input", {}).get(
+                        "doc_no_column_name", ""
+                    ),
+                    options=needlist_input.get("column_input", {}).get(
+                        "column_names", []
+                    ),
                 ).layout
             ),
             RadioItems(
@@ -157,8 +179,11 @@ def display_input(data):
                 help_text="Please select whether to search for files or folders names",
                 inline=True,
             ).layout,
-        ]
+        ],
+        id=ids.COLUMN_DROPDOWN_CONTAINER,
     )
+
+    input_fields = html.Div([path_container, excel_info, column_dropdown])
 
     save_btn = ButtonCustom(
         id=ids.SAVE_BTN,
@@ -167,6 +192,53 @@ def display_input(data):
     ).layout
 
     return input_fields, save_btn
+
+
+# hide the container if the store is empty
+@app.callback(
+    Output(ids.EXCEL_INFO_CONTAINER, "style", allow_duplicate=True),
+    Output(ids.COLUMN_DROPDOWN_CONTAINER, "style"),
+    [Input(STORE_ID, "data")],
+    prevent_initial_call=True,
+)
+def hide_container(data):
+    if data is None:
+        raise PreventUpdate
+    needlist_input = data.get("needlist_input", {})
+
+    excel_info_style = {"display": "none"}
+    column_dropdown_style = {"display": "none"}
+
+    if needlist_input.get("path_input", {}):
+        excel_info_style = {"display": "block"}
+    if needlist_input.get("column_input", {}):
+        column_dropdown_style = {"display": "block"}
+    return excel_info_style, column_dropdown_style
+
+
+# show excel info fields when path inputs are filled and validated
+@app.callback(
+    Output(STORE_ID, "data", allow_duplicate=True),
+    Output(f"{ids.NEEDLIST_PATH}-error", "children", allow_duplicate=True),
+    Output(ids.EXCEL_INFO_CONTAINER, "style", allow_duplicate=True),
+    Input(ids.NEEDLIST_PATH, "value"),
+    Input(ids.FOLDER_PATH, "value"),
+    State(STORE_ID, "data"),
+    prevent_initial_call="initial_duplicate",
+)
+def show_excel_info(needlist_path, folder_path, data):
+    if data is None:
+        raise PreventUpdate
+
+    data, error = needlist.validate_path_input(data)
+
+    if error:
+        return (
+            data,
+            MessageCustom(messages=str(error), success=False).layout,
+            dash.no_update,
+        )
+    return data, dash.no_update, {"display": "block"}
 
 
 # Generate column list on click of generate column list button
@@ -224,6 +296,7 @@ def save_data(
 ):
     if n_clicks is None:
         raise PreventUpdate
+
     needlist_input = {
         "excel_path": needlist_path,
         "folder_path": folder_path,
@@ -233,7 +306,17 @@ def save_data(
         "column_names": column_names,
         "search_level": search_level,
     }
-    data["needlist_input"] = needlist_input
+
+    needlist_input_validated, errors = needlist.validate_input(needlist_input)
+
+    if errors:
+        data["needlist_input"] = needlist_input
+        return (
+            data,
+            MessageCustom(messages="Please correct the errors", success=False).layout,
+        )
+
+    data["needlist_input"] = needlist_input_validated
     return (
         data,
         MessageCustom(messages="Data saved successfully", success=True).layout,

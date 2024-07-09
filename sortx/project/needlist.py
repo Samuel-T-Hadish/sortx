@@ -1,12 +1,59 @@
-"""functions to validate and run calculations for page1 of the project."""
+"""
+project/needlist.py
+functions to validate and run calculations for page1 of the project.
+"""
 
 from typing import Any, Dict, List, Tuple
 
+import openpyxl
 from agility.utils.pydantic import validate_data
 from pydantic import ValidationError
 
 from sortx.core.file_crawler import FileCrawler
-from sortx.schemas.needlist import NeedlistInput
+from sortx.schemas.needlist import ColumnInput, ExcelInput, NeedlistInput, PathInput
+
+
+def validate_path_input(data: dict):
+    """
+    Check if the path_input data is valid and update the values in the data dictionary.
+
+    return:
+        data: dict
+        errors: dict
+
+    """
+
+    errors = {}
+
+    if (
+        not data
+        or "needlist_input" not in data
+        or "path_input" not in data["needlist_input"]
+    ):
+        errors["path_input"] = "Path input data is missing"
+        return data, errors
+
+    path_input_data = data["needlist_input"]["path_input"]
+
+    validated_data, error = validate_data(path_input_data, PathInput)
+    data["needlist_input"]["path_input"] = validated_data
+
+    return data, error
+
+
+def validate_excel_input(data: dict):
+    """
+    Check if the excel_input data is valid.
+    """
+    excel_input, errors = validate_data(data, ExcelInput)
+
+
+def get_sheet_names(excel_path: str) -> List[str]:
+    """
+    Get the sheet names from the excel file.
+    """
+    wb = openpyxl.load_workbook(excel_path)
+    return wb.sheetnames
 
 
 def validate_input(page_input):
