@@ -96,6 +96,8 @@ class FileCrawler:
             subset=[NeedListColumn.FILE_PATH], inplace=True
         )
 
+        self.__remove_invalid_files()
+
         logger.info(f"{link_type.capitalize()} links updated successfully.")
 
     def save_excel(self):
@@ -226,3 +228,18 @@ class FileCrawler:
                     NeedListColumn.PROCESSED_DATE: datetime.now().strftime("%Y-%m-%d"),
                 }
             )
+
+    def __remove_invalid_files(self):
+        """
+        Private method to remove invalid files from the unmapped DataFrame.
+        """
+        self.unmapped_df = self.unmapped_df[
+            self.unmapped_df[NeedListColumn.FILE_PATH].apply(lambda x: Path(x).exists())
+        ]
+        logger.info("Invalid files removed from the UnMapped DataFrame.")
+
+    def __add_hyperlinks(self):  # TODO: Implement this method
+        """
+        Private method to add hyperlinks to the Excel file.
+        """
+        pass
