@@ -249,4 +249,14 @@ class FileCrawler:
         ]
         logger.info("Invalid files removed from the UnMapped DataFrame.")
 
-    # ...removed unused __add_hyperlinks method...
+        # ...removed unused __add_hyperlinks method...
+
+        self.master_df[NeedListColumn.STATUS] = self.master_df[
+            NeedListColumn.STATUS
+        ].astype(str)
+        self.master_df[NeedListColumn.FILE_PATH] = self.master_df[
+            NeedListColumn.FILE_PATH
+        ].astype(str)
+        self.master_df[NeedListColumn.PROCESSED_DATE] = self.master_df[
+            NeedListColumn.PROCESSED_DATE
+        ].astype(str)
