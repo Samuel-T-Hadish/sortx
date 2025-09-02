@@ -247,8 +247,4 @@ class FileCrawler:
         ]
         logger.info("Invalid files removed from the UnMapped DataFrame.")
 
-    def __add_hyperlinks(self):  # TODO: Implement this method
-        """
-        Private method to add hyperlinks to the Excel file.
-        """
-        pass
+    # ...removed unused __add_hyperlinks method...
