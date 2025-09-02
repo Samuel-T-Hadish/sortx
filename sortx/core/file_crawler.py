@@ -118,6 +118,16 @@ class FileCrawler:
                     )
                 sheet.range(starting_cell).options(index=False).value = self.master_df
 
+                # Add hyperlinks to the File Path column
+                file_path_col_idx = (
+                    self.master_df.columns.get_loc(NeedListColumn.FILE_PATH) + 1
+                )  # 1-based for Excel
+                for row_idx in range(len(self.master_df)):
+                    cell = sheet.range((self.header + row_idx, file_path_col_idx))
+                    file_path = self.master_df.iloc[row_idx][NeedListColumn.FILE_PATH]
+                    if pd.notna(file_path) and file_path != "":
+                        cell.value = f'=HYPERLINK("{file_path}", "Open File")'
+
                 # Save the unmapped files DataFrame to the "UnMapped" sheet
                 if "UnMapped" in wb.sheet_names:
                     unmapped_sheet = wb.sheets["UnMapped"]
