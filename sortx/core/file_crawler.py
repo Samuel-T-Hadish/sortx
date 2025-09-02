@@ -111,14 +111,16 @@ class FileCrawler:
                 sheet = wb.sheets[self.sheet_name]
                 starting_cell = sheet.range(f"A{self.header}")
                 sheet.range(starting_cell).expand("table").clear_contents()
-                # Before writing to Excel
-                if self.original_columns:
-                    self.master_df = self.master_df.reindex(
-                        columns=self.original_columns
-                    )
+                # Explicitly clear the File Path column (optional, but extra safe)
+                file_path_col_idx = (
+                    self.master_df.columns.get_loc(NeedListColumn.FILE_PATH) + 1
+                )  # 1-based for Excel
+                sheet.range(
+                    (self.header, file_path_col_idx),
+                    (self.header + len(self.master_df) - 1, file_path_col_idx),
+                ).clear_contents()
+                # Write the DataFrame as usual
                 sheet.range(starting_cell).options(index=False).value = self.master_df
-
-                # ...removed hyperlink code; file paths will be plain text...
 
                 # Save the unmapped files DataFrame to the "UnMapped" sheet
                 if "UnMapped" in wb.sheet_names:
