@@ -171,9 +171,9 @@ class FileCrawler:
             Updates the master_df DataFrame and appends to the not_found_list if the file is not found.
 
         """
-        if file_path.stem in self.master_df[self.doc_no_column_name].values:
+        if file_path.name in self.master_df[self.doc_no_column_name].values:
             self.master_df.loc[
-                self.master_df[self.doc_no_column_name] == file_path.stem,
+                self.master_df[self.doc_no_column_name] == file_path.name,
                 [
                     NeedListColumn.STATUS,
                     NeedListColumn.FILE_PATH,
