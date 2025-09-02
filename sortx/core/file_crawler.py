@@ -37,6 +37,7 @@ class FileCrawler:
         self.header = header
         self.sheet_name = sheet_name
         self.not_found_list: List[dict] = []
+        self.original_columns = None  # Track original columns of the master_df
 
     def read_excel(self):
         try:
@@ -44,6 +45,7 @@ class FileCrawler:
             self.master_df = pd.read_excel(
                 self.excel_file_path, sheet_name=self.sheet_name, header=self.header - 1
             )
+            self.original_columns = self.master_df.columns.tolist()
             logger.info("Main Excel sheet read successfully.")
 
             # Read the UnMapped sheet if it exists
@@ -109,6 +111,11 @@ class FileCrawler:
                 sheet = wb.sheets[self.sheet_name]
                 starting_cell = sheet.range(f"A{self.header}")
                 sheet.range(starting_cell).expand("table").clear_contents()
+                # Before writing to Excel
+                if self.original_columns:
+                    self.master_df = self.master_df.reindex(
+                        columns=self.original_columns
+                    )
                 sheet.range(starting_cell).options(index=False).value = self.master_df
 
                 # Save the unmapped files DataFrame to the "UnMapped" sheet
