@@ -48,6 +48,24 @@ class FileCrawler:
             self.original_columns = self.master_df.columns.tolist()
             logger.info("Main Excel sheet read successfully.")
 
+            # Validate doc_no_column_name
+            if (
+                not self.doc_no_column_name
+                or self.doc_no_column_name not in self.master_df.columns
+            ):
+                raise ValueError(
+                    f"doc_no_column_name '{self.doc_no_column_name}' is not set or not found in Excel columns: {self.master_df.columns.tolist()}"
+                )
+
+            # Ensure required columns exist
+            for col in [
+                NeedListColumn.STATUS,
+                NeedListColumn.FILE_PATH,
+                NeedListColumn.PROCESSED_DATE,
+            ]:
+                if col not in self.master_df.columns:
+                    self.master_df[col] = ""
+
             # Read the UnMapped sheet if it exists
             try:
                 self.unmapped_df = pd.read_excel(
