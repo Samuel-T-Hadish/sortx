@@ -40,6 +40,9 @@ class FileCrawler:
         self.original_columns = None  # Track original columns of the master_df
 
     def read_excel(self):
+            # Ensure Discipline column exists
+            if 'Discipline' not in self.master_df.columns:
+                self.master_df['Discipline'] = ""
         try:
             # Read the main sheet
             self.master_df = pd.read_excel(
@@ -194,17 +197,29 @@ class FileCrawler:
 
         """
         if file_path.name in self.master_df[self.doc_no_column_name].values:
+            # Determine discipline from subfolder
+            discipline = ""
+            discipline_options = ["Civil", "Electrical", "HSE", "Piping", "Process"]
+            for part in file_path.parts:
+                for d in discipline_options:
+                    if d.lower() == part.lower():
+                        discipline = d
+                        break
+                if discipline:
+                    break
             self.master_df.loc[
                 self.master_df[self.doc_no_column_name] == file_path.name,
                 [
                     NeedListColumn.STATUS,
                     NeedListColumn.FILE_PATH,
                     NeedListColumn.PROCESSED_DATE,
+                    'Discipline',
                 ],
             ] = [
                 "Yes",
                 str(file_path),
                 datetime.now().strftime("%Y-%m-%d"),
+                discipline,
             ]
         else:
             self.__update_unmapped_files(file_path)
