@@ -206,45 +206,45 @@ class FileCrawler:
                         discipline = d
                         break
                 if discipline:
-                    break
-            self.master_df.loc[
-                self.master_df[self.doc_no_column_name] == file_path.name,
-                [
-                    NeedListColumn.STATUS,
-                    NeedListColumn.FILE_PATH,
-                    NeedListColumn.PROCESSED_DATE,
-                    'Discipline',
-                ],
-            ] = [
-                "Yes",
-                str(file_path),
-                datetime.now().strftime("%Y-%m-%d"),
-                discipline,
-            ]
-        else:
-            self.__update_unmapped_files(file_path)
+                        # Read the main sheet
+                        self.master_df = pd.read_excel(
+                            self.excel_file_path, sheet_name=self.sheet_name, header=self.header - 1
+                        )
+                        self.original_columns = self.master_df.columns.tolist()
+                        logger.info("Main Excel sheet read successfully.")
 
-    def __update_folder_links(self, file_path: Path):
-        """
-        Private method to update the DataFrame with folder links.
-        Used by the update_links method.
+                        # Validate doc_no_column_name
+                        if not self.doc_no_column_name or self.doc_no_column_name not in self.master_df.columns:
+                            raise ValueError(f"doc_no_column_name '{self.doc_no_column_name}' is not set or not found in Excel columns: {self.master_df.columns.tolist()}")
 
-        Args:
-            file_path: Path object of the folder to update in the DataFrame.
+                        # Ensure required columns exist
+                        for col in [NeedListColumn.STATUS, NeedListColumn.FILE_PATH, NeedListColumn.PROCESSED_DATE]:
+                            if col not in self.master_df.columns:
+                                self.master_df[col] = ""
 
-        Generates:
-            Updates the master_df DataFrame and appends to the not_found_list if the folder is not found.
+                        # Ensure Discipline column exists
+                        if 'Discipline' not in self.master_df.columns:
+                            self.master_df['Discipline'] = ""
 
-        """
-        if file_path.name in self.master_df[self.doc_no_column_name].values:
-            self.master_df.loc[
-                self.master_df[self.doc_no_column_name] == file_path.name,
-                [
-                    NeedListColumn.STATUS,
-                    NeedListColumn.FILE_PATH,
-                    NeedListColumn.PROCESSED_DATE,
-                ],
-            ] = [
+                        # Read the UnMapped sheet if it exists
+                        try:
+                            self.unmapped_df = pd.read_excel(
+                                self.excel_file_path, sheet_name="UnMapped"
+                            )
+                            logger.info("UnMapped sheet read successfully.")
+                        except ValueError:
+                            self.unmapped_df = pd.DataFrame(
+                                columns=[
+                                    self.doc_no_column_name,
+                                    NeedListColumn.FILE_PATH,
+                                    NeedListColumn.PROCESSED_DATE,
+                                ]
+                            )
+                            logger.info(
+                                "UnMapped sheet does not exist. Initialized empty DataFrame."
+                            )
+                    except Exception as e:
+                        logger.error(f"Error reading excel file: {e}")
                 "Yes",
                 str(file_path),
                 datetime.now().strftime("%Y-%m-%d"),
